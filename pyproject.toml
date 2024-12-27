@@ -24,6 +24,7 @@ dependencies = [
     "matplotlib",
     "numpy<2",
     "ophyd",
+    "ophyd-async",
     "ortools",
     "scipy",
     "tables",
