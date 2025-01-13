@@ -4,23 +4,37 @@ from ophyd_async.core import StandardReadable, soft_signal_r_and_setter, Standar
 from bluesky.protocols import Triggerable
 from ..utils import get_beam_stats
 
+class AsyncBeamline(StandardReadable):
+    def __init__(self, noise: bool = False, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.det = AsyncSimDetector(noise=noise)
+        with self.add_children_as_readables(format=StandardReadableFormat.HINTED_SIGNAL):
+            self.kbh_ush, self.set_kbh_ush = soft_signal_r_and_setter(float, name="kbh_ush")
+            self.kbh_dsh, self.set_kbh_dsh = soft_signal_r_and_setter(float, name="kbh_dsh")
+            self.kbv_usv, self.set_kbv_usv = soft_signal_r_and_setter(float, name="kbv_usv")
+            self.kbv_dsv, self.set_kbv_dsv = soft_signal_r_and_setter(float, name="kbv_dsv")
+            self.ssa_inboard, self.set_ssa_inboard = soft_signal_r_and_setter(float, name="ssa_inboard")
+            self.ssa_outboard, self.set_ssa_outboard = soft_signal_r_and_setter(float, name="ssa_outboard")
+            self.ssa_lower, self.set_ssa_lower = soft_signal_r_and_setter(float, name="ssa_lower")
+            self.ssa_upper, self.set_ssa_upper = soft_signal_r_and_setter(float, name="ssa_upper")
 
-class SimDetector(StandardReadable, Triggerable):
+class AsyncSimDetector(StandardReadable, Triggerable):
+    parent: AsyncBeamline
     def __init__(self, noise: bool = True, *args, **kwargs):
         super().__init__(*args, **kwargs)
         with self.add_children_as_readables():
-            self.max, self.set_max = soft_signal_r_and_setter(float)
-            self.area, self.set_area = soft_signal_r_and_setter(float)
-            self.image, self.set_image = soft_signal_r_and_setter(np.ndarray)
-            self.image_shape, self.set_image_shape = soft_signal_r_and_setter(np.ndarray, initial_value=np.array([300, 400]))
-            self.noise, self.set_noise = soft_signal_r_and_setter(bool, initial_value=noise)
+            self.max, self.set_max = soft_signal_r_and_setter(float, name="max")
+            self.area, self.set_area = soft_signal_r_and_setter(float, name="area")
+            self.image, self.set_image = soft_signal_r_and_setter(np.ndarray, name="image")
+            self.image_shape, self.set_image_shape = soft_signal_r_and_setter(np.ndarray, name="image_shape", initial_value=np.array([300, 400]))
+            self.noise, self.set_noise = soft_signal_r_and_setter(bool, name="noise", initial_value=noise)
 
         with self.add_children_as_readables(format=StandardReadableFormat.HINTED_SIGNAL):
-            self.sum, self.set_sum = soft_signal_r_and_setter(float)
-            self.cen_x, self.set_cen_x = soft_signal_r_and_setter(int)
-            self.cen_y, self.set_cen_y = soft_signal_r_and_setter(int)
-            self.wid_x, self.set_wid_x = soft_signal_r_and_setter(int)
-            self.wid_y, self.set_wid_y = soft_signal_r_and_setter(int)
+            self.sum, self.set_sum = soft_signal_r_and_setter(float, name="sum")
+            self.cen_x, self.set_cen_x = soft_signal_r_and_setter(int, name="cen_x")
+            self.cen_y, self.set_cen_y = soft_signal_r_and_setter(int, name="cen_y")
+            self.wid_x, self.set_wid_x = soft_signal_r_and_setter(int, name="wid_x")
+            self.wid_y, self.set_wid_y = soft_signal_r_and_setter(int, name="wid_y")
 
     async def trigger(self):
         raw_image = await self.generate_beam(noise=await self.noise.get_value())
@@ -95,17 +109,3 @@ class SimDetector(StandardReadable, Triggerable):
 
         return image
 
-
-class Beamline(StandardReadable):
-    def __init__(self, noise: bool = False, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.det = SimDetector(noise=noise)
-        with self.add_children_as_readables(format=StandardReadableFormat.HINTED_SIGNAL):
-            self.kbh_ush, self.set_kbh_ush = soft_signal_r_and_setter(float)
-            self.kbh_dsh, self.set_kbh_dsh = soft_signal_r_and_setter(float)
-            self.kbv_usv, self.set_kbv_usv = soft_signal_r_and_setter(float)
-            self.kbv_dsv, self.set_kbv_dsv = soft_signal_r_and_setter(float)
-            self.ssa_inboard, self.set_ssa_inboard = soft_signal_r_and_setter(float, initial_value=-5.0)
-            self.ssa_outboard, self.set_ssa_outboard = soft_signal_r_and_setter(float, initial_value=5.0)
-            self.ssa_lower, self.set_ssa_lower = soft_signal_r_and_setter(float, initial_value=-5.0)
-            self.ssa_upper, self.set_ssa_upper = soft_signal_r_and_setter(float, initial_value=5.0)
